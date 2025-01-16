@@ -1,0 +1,52 @@
+import os import cv2 import numpy as np
+labels = {'PNEUMONIA': 0, 'NORMAL': 1}
+# Using dictionary for clarity img_size = 224 def get_training_data(data_dir):
+images = [] labels_list = []
+for label, label_num in labels.items(): path = os.path.join(data_dir, label) for img in os.listdir(path):
+try:
+img_arr = cv2.imread(os.path.join(path, img)) img_arr = cv2.resize(img_arr, (224, 224))
+# Resize image to (224, 224) images.append(img_arr) labels_list.append(label_num)
+except Exception as e: print(e)
+return np.array(images), np.array(labels_list)
+
+train_images, train_labels = get_training_data(r"C:/Users/Dell/Desktop/Pneu_dataset/chest_xray/train") test_images, test_labels = get_training_data(r"C:/Users/Dell/Desktop/Pneu_dataset/chest_xray/test") val_images, val_labels = get_training_data(r"C:/Users/Dell/Desktop/Pneu_dataset/chest_xray/val")
+
+pnenumonia = 0
+normal = 0
+for label in train_labels: if label == 0:
+pnenumonia += 1 else:
+ 
+normal += 1 print('Pneumonia:', pnenumonia) print('Normal:', normal)
+print('Pneumonia - Normal:', pnenumonia - normal)
+
+import matplotlib.pyplot as plt
+labels = ['PNEUMONIA', 'NORMAL']
+# Find the index of an image with PNEUMONIA label pneumonia_index = np.where(train_labels == 0)[0][0] # Find the index of an image with NORMAL label normal_index = np.where(train_labels == 1)[0][0]
+# Create a figure with 1 row and 2 columns for the subplots fig, axes = plt.subplots(1, 2, figsize=(10, 5))
+# Display the image with PNEUMONIA label axes[0].imshow(train_images[pneumonia_index], cmap='gray') axes[0].axis('off') axes[0].set_title(labels[train_labels[pneumonia_index]])
+# Display the image with NORMAL label axes[1].imshow(train_images[normal_index], cmap='gray') axes[1].axis('off') axes[1].set_title(labels[train_labels[normal_index]]) plt.show()
+
+# Initialize empty lists for features (X) and labels (y) X_list = []
+y_list = []
+# For train data
+for feature, label in zip(train_images, train_labels): X_list.append(feature)
+y_list.append(label) # For test data
+for feature, label in zip(test_images, test_labels): X_list.append(feature)
+y_list.append(label) # For validation data
+for feature, label in zip(val_images, val_labels): X_list.append(feature)
+y_list.append(label)
+# Convert lists to numpy arrays X = np.array(X_list)
+y = np.array(y_list)
+# Reshape data for deep learning
+X = X.reshape(-1, img_size, img_size, 3) # Ensure correct number of channels (RGB) # Split the data
+ 
+from sklearn.model_selection import train_test_split
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=32) X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size=0.20, random_state=32)
+
+X_train = X_train / 255 X_test = X_test / 255 X_val = X_val / 255
+
+Data Augmentation
+datagen = ImageDataGenerator( featurewise_center=False, samplewise_center=False, featurewise_std_normalization=False, samplewise_std_normalization=False, zca_whitening=False, rotation_range=90,
+zoom_range = 0.1, width_shift_range=0.1, height_shift_range=0.1, horizontal_flip=True, vertical_flip=True)
+datagen.fit(X_train)
+
