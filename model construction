@@ -1,0 +1,71 @@
+from keras.applications import VGG16 from keras.models import Model
+from keras.layers import Dense, GlobalAveragePooling2D # Load pre-trained VGG16 model without the top layers
+base_model = VGG16(weights='imagenet', include_top=False, input_shape=(224, 224, 3)) # Add your own classification layers on top of VGG16
+x = base_model.output
+x = GlobalAveragePooling2D()(x) # Global average pooling layer x = Dense(512, activation='relu')(x) # Fully connected layer
+predictions = Dense(1, activation='sigmoid')(x) # Output layer with sigmoid activation for binary classification
+# Define the model
+model = Model(inputs=base_model.input, outputs=predictions) # Freeze the layers in the base VGG16 model
+for layer in base_model.layers: layer.trainable = False
+
+Model Compilation
+model.compile(optimizer='rmsprop', loss='binary_crossentropy', metrics=['accuracy'])
+ 
+Model Summary
+model.summary()
+
+learning_rate_reduction = ReduceLROnPlateau(monitor='val_accuracy', patience = 2, verbose=1,factor=0.3, min_lr=0.000001)
+
+Model Training
+history = model.fit(datagen.flow(X_train,y_train, batch_size = 32) ,epochs = 20 , validation_data =datagen.flow(X_val, y_val) ,callbacks = [learning_rate_reduction])
+
+Model Evaluation
+model.evaluate(X_test, y_test)
+
+plt.figure(figsize=(16, 9))
+plt.plot(history.epoch, history.history['accuracy']) plt.title('Model Accuracy')
+plt.legend(['train'], loc='upper left') plt.show()
+
+plt.figure(figsize=(16, 9)) plt.plot(history.epoch, history.history['loss']) plt.title('Model Loss')
+plt.legend(['train'], loc='upper left') plt.show()
+plt.figure(figsize=(16, 9))
+plt.plot(history.epoch, history.history['val_accuracy']) plt.title('Model Validation Accuracy') plt.legend(['train'], loc='upper left')
+plt.show()
+
+plt.figure(figsize=(16, 9))
+plt.plot(history.epoch, history.history['val_loss']) plt.title('Model Validation Loss') plt.legend(['train'], loc='upper left')
+plt.show()
+
+pred = model.predict(X_train)
+precisions, recalls, thresholds = precision_recall_curve(y_train, pred) fpr, tpr, thresholds2 = roc_curve(y_train, pred)
+
+def plot_precision_recall(precisions, recalls, thresholds):
+ 
+plt.plot(thresholds, precisions[:-1], 'b--')
+plt.plot(thresholds, recalls[:-1], 'g-') plt.title('Precision vs. Recall') plt.xlabel('Thresholds') plt.legend(['Precision', 'Recall'], loc='best') plt.show()
+plot_precision_recall(precisions, recalls, thresholds)
+
+def plot_roc(fpr, tpr): plt.plot(fpr, tpr) plt.plot([0, 1], [0, 1], 'k--')
+plt.title('FPR (False Positive rate) vs TPR (True Positive Rate)') plt.xlabel('False Positive Rate')
+plt.ylabel('True Positive Rate (Recall)') plt.show()
+plot_roc(fpr, tpr)
+
+predictions = model.predict(X_test) binary_predictions = []
+threshold = thresholds[np.argmax(precisions >= 0.80)] for i in predictions:
+if i >= threshold: binary_predictions.append(1)
+else: binary_predictions.append(0)
+
+print('Accuracy on testing set:', accuracy_score(binary_predictions, y_test)) print('Precision on testing set:', precision_score(binary_predictions, y_test)) print('Recall on testing set:', recall_score(binary_predictions, y_test))
+
+matrix = confusion_matrix(binary_predictions, y_test) plt.figure(figsize=(16, 9))
+ax= plt.subplot()
+sns.heatmap(matrix, annot=True, ax = ax) # labels, title and ticks ax.set_xlabel('Predicted Labels', size=20) ax.set_ylabel('True Labels', size=20) ax.set_title('Confusion Matrix', size=20) ax.xaxis.set_ticklabels(labels) ax.yaxis.set_ticklabels(labels)
+
+Sample Output plt.figure(figsize=(10,10)) for i in range(25):
+plt.subplot(5,5,i+1)
+ 
+plt.xticks([])
+plt.yticks([]) plt.grid(False)
+plt.imshow(X_train.reshape(-1, img_size, img_size)[i], cmap='gray') if(binary_predictions[i]==y_test[i]):
+plt.xlabel(labels[binary_predictions[i]], color='blue') else:
+plt.xlabel(labels[binary_predictions[i]], color='red') plt.show()
